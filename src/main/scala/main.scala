@@ -20,7 +20,7 @@ val lineorderStructure: Array[String] =
   Array("lo_orderkey", "lo_linenumber", "lo_custkey", "lo_partkey", "lo_suppkey", "lo_orderdate", "lo_orderpriority", "lo_shippriority", "lo_quantity", "lo_extendedprice", "lo_ordtotalprice", "lo_discount", "lo_revenue", "lo_supplycost", "lo_tax", "lo_commitdate", "lo_shipmod")
 
 
-val pool: JedisPool = new JedisPool("localhost", 6380)
+val pool: JedisPool = new JedisPool("localhost", 6381)
 val jedis: Jedis = pool.getResource
 val pipeline: Pipeline = jedis.pipelined()
 
@@ -67,9 +67,9 @@ def insertIntoRedis(data: Seq[String], databaseName: String, dataStructure: Arra
     dateStructure.foreach(key => {
       if (valueIterator.hasNext) {
         if (isLineOrder) {
-          pipeline.hset(databaseName + ":" + values(0) + ":" + values(1), key, valueIterator.next())
+          pipeline.hset((databaseName + ":" + values(0) + ":" + values(1)).getBytes, key.getBytes, valueIterator.next().getBytes())
         } else {
-          pipeline.hset(databaseName + ":" + values(0), key, valueIterator.next())
+          pipeline.hset((databaseName + ":" + values(0)).getBytes, key.getBytes, valueIterator.next().getBytes)
         }
       }
     })
