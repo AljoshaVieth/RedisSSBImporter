@@ -35,6 +35,7 @@ object InsertWithAdaptedStructure extends Inserter {
 
 		val pipeline: Pipeline = jedisPooled.pipelined()
 		insertLineorderFactsIntoRedis(pipeline)
+		insertHelperTablesIntoRedis(pipeline)
 
 
 		resetRedisConfig(jedis)
@@ -195,7 +196,47 @@ object InsertWithAdaptedStructure extends Inserter {
 
 					// This is pre-calculation...
 					val discountedPriceKey = "lo_discountedprice:" + date.d_year + ":" + date.d_monthnuminyear + ":" + date.d_daynuminmonth
-					pipeline.zadd(discountedPriceKey, lineorderObject.lo_discount.toLong*lineorderObject.lo_extendedprice.toLong, lineorderObject.lo_orderkey + ":" + lineorderObject.lo_linenumber)
+					pipeline.zadd(discountedPriceKey, lineorderObject.lo_discount.toLong * lineorderObject.lo_extendedprice.toLong, lineorderObject.lo_orderkey + ":" + lineorderObject.lo_linenumber)
+
+				case None =>
+				// ignore this object
+			}
+		})
+		pipeline.sync()
+		println("Insertion complete!")
+
+	}
+
+
+	def insertHelperTablesIntoRedis(pipeline: Pipeline) = {
+		println("Inserting helper tables to redis...")
+		lineorderMap.values.foreach(lineorderObject => {
+			if (lineorderObject.lo_discount.toInt >= 1 && lineorderObject.lo_discount.toInt <= 3) {
+				val discountBetween1And3Key = "lo_discount:between1And3"
+				pipeline.zadd(discountBetween1And3Key, 0, lineorderObject.lo_orderkey + ":" + lineorderObject.lo_linenumber)
+			}
+			if (lineorderObject.lo_quantity.toLong < 25){
+				val quantityLowerThan25 = "lo_quantity:lowerThan25"
+				pipeline.zadd(quantityLowerThan25, 0, lineorderObject.lo_orderkey + ":" + lineorderObject.lo_linenumber)
+			}
+
+		})
+		pipeline.sync()
+		println("Insertion complete!")
+
+	}
+
+	def insertOnlyValidLineorderFactsIntoRedis(pipeline: Pipeline) = {
+		println("Inserting lineorder facts to redis...")
+		lineorderMap.values.foreach(lineorderObject => {
+			val matchingDate: Option[DateObject] = dateMap.get(lineorderObject.lo_orderdate)
+			matchingDate match {
+				case Some(date) =>
+					if(lineorderObject.lo_discount.toInt >= 1 && lineorderObject.lo_discount.toInt <= 3 && lineorderObject.lo_quantity.toLong < 25){
+						// This is pre-calculation...
+						val discountedPriceKey = "lo_discountedprice:discountBetween1And3+quantityLowerThan25" + date.d_year + ":" + date.d_monthnuminyear + ":" + date.d_daynuminmonth
+						pipeline.zadd(discountedPriceKey, lineorderObject.lo_discount.toLong * lineorderObject.lo_extendedprice.toLong, lineorderObject.lo_orderkey + ":" + lineorderObject.lo_linenumber)
+					}
 
 				case None =>
 				// ignore this object
