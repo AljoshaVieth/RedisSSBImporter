@@ -1,4 +1,5 @@
 package de.aljoshavieth.redisssbinserter
+package classicStructure
 
 import redis.clients.jedis.search.{IndexDefinition, IndexOptions, Schema}
 import redis.clients.jedis.{Jedis, JedisPool, JedisPooled, Pipeline}
