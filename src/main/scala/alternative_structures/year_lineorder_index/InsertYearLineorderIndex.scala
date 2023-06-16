@@ -1,5 +1,5 @@
 package de.aljoshavieth.redisssbinserter
-package classicStructure
+package alternative_structures.year_lineorder_index
 
 import datastructure.*
 
