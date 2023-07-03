@@ -3,5 +3,6 @@ package datastructure.shortened
 
 case class ShortenedCustomerObject(c_custkey: String,
 								   c_city: String,
-								   c_nation: String
+								   c_nation: String,
+								   c_region: String
 								  )
