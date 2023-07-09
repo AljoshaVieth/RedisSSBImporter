@@ -11,5 +11,5 @@ case class ShortenedLineorderObject(lo_orderkey: String,
 									lo_extendedprice: String,
 									lo_discount: String,
 									lo_revenue: String,
-									lo_supplycost: String,
+									lo_supplycost: String
 								   )

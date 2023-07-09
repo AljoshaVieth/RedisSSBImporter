@@ -2,7 +2,7 @@ package de.aljoshavieth.redisssbinserter
 package alternative_structures.denormalized
 
 import datastructure.*
-import datastructure.shortened.{ShortenedCustomerObject, ShortenedLineorderObject, ShortenedPartObject, ShortenedSupplierObject}
+import datastructure.shortened.{ShortenedCustomerObject, ShortenedDateObject, ShortenedLineorderObject, ShortenedPartObject, ShortenedSupplierObject}
 
 import redis.clients.jedis.{Jedis, JedisPooled, Pipeline}
 
@@ -16,6 +16,8 @@ object InsertWithDenormalizedStructure extends Inserter {
 	var customerMap: Map[String, ShortenedCustomerObject] = Map.empty[String, ShortenedCustomerObject]
 	var supplierMap: Map[String, ShortenedSupplierObject] = Map.empty[String, ShortenedSupplierObject]
 	var partMap: Map[String, ShortenedPartObject] = Map.empty[String, ShortenedPartObject]
+	var dateMap: Map[String, ShortenedDateObject] = Map.empty[String, ShortenedDateObject]
+
 	var lineorderMap: Map[String, ShortenedLineorderObject] = Map.empty[String, ShortenedLineorderObject]
 
 	var denormalizedMap: Map[String, DenormalizedObject] = Map.empty[String, DenormalizedObject]
@@ -31,11 +33,12 @@ object InsertWithDenormalizedStructure extends Inserter {
 		println("CustomerObjects: " + customerMap.size)
 		println("SupplierObjects: " + supplierMap.size)
 		println("PartObjects: " + partMap.size)
+		println("DateObjects: " + dateMap.size)
 		println("LineorderObjects: " + lineorderMap.size)
 
 		println("Building denormalized map")
 
-		createDenormalizedMap(customerMap, supplierMap, partMap, lineorderMap)
+		createDenormalizedMap(customerMap, supplierMap, partMap, lineorderMap, dateMap)
 
 		val pipeline: Pipeline = jedisPooled.pipelined()
 		insertDenormalizedObjectsIntoRedis(pipeline)
@@ -51,6 +54,7 @@ object InsertWithDenormalizedStructure extends Inserter {
 		readLines("customer.tbl", createCustomerMap)
 		readLines("supplier.tbl", createSupplierMap)
 		readLines("part.tbl", createPartMap)
+		readLines("date.tbl", createDateMap)
 		readLines("lineorder.tbl", createLineorderMap)
 	}
 
@@ -79,6 +83,18 @@ object InsertWithDenormalizedStructure extends Inserter {
 					attributes(4)
 				)
 				(part.p_partkey, part)
+			}).toMap
+	}
+
+	def createDateMap(dateLines: Iterator[String]): Unit = {
+		dateMap =
+			dateLines.map(dateLine => {
+				val attributes = dateLine.split('|')
+				val date = ShortenedDateObject(
+					attributes(0),
+					attributes(4)
+				)
+				(date.d_datekey, date)
 			}).toMap
 	}
 
@@ -137,12 +153,14 @@ object InsertWithDenormalizedStructure extends Inserter {
 								 customerMap: Map[String, ShortenedCustomerObject],
 								 supplierMap: Map[String, ShortenedSupplierObject],
 								 partMap: Map[String, ShortenedPartObject],
-								 lineorderMap: Map[String, ShortenedLineorderObject]): Unit = {
+								 lineorderMap: Map[String, ShortenedLineorderObject],
+								 dateMap: Map[String, ShortenedDateObject]): Unit = {
 
 		lineorderMap.foreach { case (key, lineorder) =>
 			val customer = customerMap.getOrElse(lineorder.lo_custkey, ShortenedCustomerObject("", "", "", ""))
 			val supplier = supplierMap.getOrElse(lineorder.lo_suppkey, ShortenedSupplierObject("", "", "", ""))
 			val part = partMap.getOrElse(lineorder.lo_partkey, ShortenedPartObject("", "", ""))
+			val date = dateMap.getOrElse(lineorder.lo_orderdate, ShortenedDateObject("", ""))
 
 			val denormalized = DenormalizedObject(
 				lineorder.lo_orderkey,
@@ -163,7 +181,8 @@ object InsertWithDenormalizedStructure extends Inserter {
 				supplier.s_nation,
 				customer.c_region,
 				supplier.s_region,
-				part.p_brand1
+				part.p_brand1,
+				date.d_year
 			)
 
 			denormalizedMap += (key -> denormalized)
@@ -199,7 +218,8 @@ object InsertWithDenormalizedStructure extends Inserter {
 					"s_nation" -> denormalizedObject.s_nation,
 					"c_region" -> denormalizedObject.c_region,
 					"s_region" -> denormalizedObject.s_region,
-					"p_brand1" -> denormalizedObject.p_brand1
+					"p_brand1" -> denormalizedObject.p_brand1,
+					"d_year" -> denormalizedObject.d_year
 				)
 				pipeline.hmset("lineorder:" + denormalizedObject.lo_orderkey + ":" + denormalizedObject.lo_linenumber, hash.asJava)
 				numOfInsertedRecords = numOfInsertedRecords + 1

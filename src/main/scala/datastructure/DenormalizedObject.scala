@@ -19,5 +19,6 @@ case class DenormalizedObject(lo_orderkey: String,
 							  s_nation: String,
 							  c_region: String,
 							  s_region: String,
-							  p_brand1: String
+							  p_brand1: String,
+							  d_year: String
 							 )
