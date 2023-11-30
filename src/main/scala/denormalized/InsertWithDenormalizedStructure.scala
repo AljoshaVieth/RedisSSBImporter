@@ -1,5 +1,5 @@
 package de.aljoshavieth.redisssbinserter
-package alternative_structures.denormalized
+package denormalized
 
 import datastructure.*
 import datastructure.shortened.*
@@ -10,6 +10,9 @@ import scala.io.Source
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
+/**
+ * This object is used to build and insert denormalized data
+ */
 object InsertWithDenormalizedStructure extends Inserter {
 
 
@@ -17,9 +20,7 @@ object InsertWithDenormalizedStructure extends Inserter {
 	var supplierMap: Map[String, ShortenedSupplierObject] = Map.empty[String, ShortenedSupplierObject]
 	var partMap: Map[String, ShortenedPartObject] = Map.empty[String, ShortenedPartObject]
 	var dateMap: Map[String, ShortenedDateObject] = Map.empty[String, ShortenedDateObject]
-
 	var lineorderMap: Map[String, ShortenedLineorderObject] = Map.empty[String, ShortenedLineorderObject]
-
 	var denormalizedMap: Map[String, DenormalizedObject] = Map.empty[String, DenormalizedObject]
 
 
@@ -51,11 +52,12 @@ object InsertWithDenormalizedStructure extends Inserter {
 
 
 	def parseData(): Unit = {
-		readLines("customer.tbl", createCustomerMap)
-		readLines("supplier.tbl", createSupplierMap)
-		readLines("part.tbl", createPartMap)
-		readLines("date.tbl", createDateMap)
-		readLines("lineorder.tbl", createLineorderMap)
+		val path: String = "src/resources/ssb-data/scale-1/" // Set the scale of the data
+		readLines(path + "customer.tbl", createCustomerMap)
+		readLines(path + "supplier.tbl", createSupplierMap)
+		readLines(path + "part.tbl", createPartMap)
+		readLines(path + "date.tbl", createDateMap)
+		readLines(path + "lineorder.tbl", createLineorderMap)
 	}
 
 	def readLines(fileName: String, f: Iterator[String] => Unit): Unit = {
@@ -192,8 +194,7 @@ object InsertWithDenormalizedStructure extends Inserter {
 
 
 	}
-
-
+	
 	var numOfInsertedRecords = 0
 
 	private def insertDenormalizedObjectsIntoRedis(pipeline: Pipeline): Unit = {

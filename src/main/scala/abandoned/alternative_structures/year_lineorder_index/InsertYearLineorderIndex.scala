@@ -1,6 +1,5 @@
 package de.aljoshavieth.redisssbinserter
-package alternative_structures.date_lineorderkey_index
-
+package abandoned.alternative_structures.year_lineorder_index
 
 import datastructure.*
 
@@ -9,7 +8,7 @@ import redis.clients.jedis.{Jedis, JedisPooled, Pipeline}
 import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
-object InsertDateLineorderkeyIndex extends Inserter {
+object InsertYearLineorderIndex extends Inserter {
 	var dateMap: Map[String, DateObject] = Map.empty[String, DateObject]
 	var lineorderMap: Map[String, LineorderObject] = Map.empty[String, LineorderObject]
 
@@ -23,17 +22,19 @@ object InsertDateLineorderkeyIndex extends Inserter {
 		println("LineorderObjects: " + lineorderMap.size)
 
 		println("Starting linkLineordersToDates...")
-		val dateLineorderMap = linkLineordersToDate(dateMap, lineorderMap.values.toList)
-		println(dateLineorderMap.size)
-		dateLineorderMap.values.foreach(x => println(x.size))
+		val yearLineorderMap = linkLineordersToYear(dateMap, lineorderMap.values.toList)
+		println(yearLineorderMap.size)
+		yearLineorderMap.values.foreach(x => println(x.size))
 		val pipeline: Pipeline = jedis.pipelined()
 		println("Inserting into Redis...")
-		insertAsListIntoRedis(pipeline, dateLineorderMap)
-
+		insertAsListIntoRedis(pipeline, yearLineorderMap)
+		//val yearDatekeyMap = linkDateToYear(dateMap)
+		//insertDatekeysAsQueryStrings(pipeline, yearDatekeyMap)
 
 		resetRedisConfig(jedis)
 		println("\nAll data inserted in " + (System.nanoTime() - startTime) + " nanoseconds")
 		jedis.close()
+		//jedisPooled.close()
 
 	}
 
@@ -112,23 +113,23 @@ object InsertDateLineorderkeyIndex extends Inserter {
 			}).toMap
 	}
 
-	private def linkLineordersToDate(
+	private def linkLineordersToYear(
 										dateMap: Map[String, DateObject],
 										lineorderObjects: List[LineorderObject]): Map[String, List[String]] = {
 		lineorderObjects.flatMap { lineorderObject =>
 			dateMap.get(lineorderObject.lo_orderdate).map { dateObject =>
 				// Check if the order date exists in the dateMap and map it to a result if present
-				val datekey = dateObject.d_datekey
+				val year = dateObject.d_year
 				val lineorderKey = lineorderObject.lo_orderkey + ":" + lineorderObject.lo_linenumber
-				(datekey, lineorderKey) // Return a tuple of year and lineorderKey
+				(year, lineorderKey) // Return a tuple of year and lineorderKey
 			}
 		}.groupMap(_._1)(_._2) // Group the tuples by year and collect lineorderKeys into a list for each year
 	}
 
 	private def insertAsListIntoRedis(pipeline: Pipeline, map: Map[String, List[String]]): Unit = {
 		map.foreach((k, v) => {
-			println("key: " + "dateLineorderKeyIndex:" + k)
-			pipeline.rpush("dateLineorderKeyIndex:" + k, v: _*)
+			println("key: " + "yearLineorderIndex:" + k)
+			pipeline.rpush("yearLineorderIndex:" + k, v: _*)
 		})
 		pipeline.sync()
 		println("Everything Inserted")
@@ -140,7 +141,7 @@ object InsertDateLineorderkeyIndex extends Inserter {
 			.view.mapValues(_.values.map(_.d_datekey).toList).toMap
 	}
 
-
+	
 	private def insertDatekeysAsQueryStrings(pipeline: Pipeline, map: Map[String, List[String]]): Unit = {
 		map.foreach((k, v) => {
 			pipeline.set("yearDateIndex:" + k, v.map(str => s"@lo_orderdate:[$str $str]").mkString(" | "))
@@ -148,6 +149,7 @@ object InsertDateLineorderkeyIndex extends Inserter {
 		pipeline.sync()
 		println("Everything Inserted")
 	}
+	
 
 
 }

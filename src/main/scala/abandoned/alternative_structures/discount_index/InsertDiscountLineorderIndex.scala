@@ -1,5 +1,5 @@
 package de.aljoshavieth.redisssbinserter
-package alternative_structures.discount_index
+package abandoned.alternative_structures.discount_index
 
 import redis.clients.jedis.{Jedis, JedisPooled, Pipeline}
 

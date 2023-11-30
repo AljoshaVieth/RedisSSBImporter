@@ -1,5 +1,5 @@
 package de.aljoshavieth.redisssbinserter
-package alternative_structures.orderdate_lineorder
+package abandoned.alternative_structures.orderdate_lineorder
 
 import redis.clients.jedis.{Jedis, JedisPooled, Pipeline}
 

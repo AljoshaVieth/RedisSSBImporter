@@ -1,4 +1,5 @@
 package de.aljoshavieth.redisssbinserter
+package abandoned.alternative_structures
 
 import datastructure.*
 

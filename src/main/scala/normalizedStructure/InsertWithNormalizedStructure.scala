@@ -1,5 +1,5 @@
 package de.aljoshavieth.redisssbinserter
-package classicStructure
+package normalizedStructure
 
 import redis.clients.jedis.search.{IndexDefinition, IndexOptions, Schema}
 import redis.clients.jedis.{Jedis, JedisPool, JedisPooled, Pipeline}
@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
-object InsertWithClassicStructure extends Inserter {
+object InsertWithNormalizedStructure extends Inserter {
 	val customerStructure: Array[String] =
 		Array("c_custkey", "c_name", "c_address", "c_city", "c_nation", "c_region", "c_phone", "c_mktsegment")
 	val partStructure: Array[String] =
